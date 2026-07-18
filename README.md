@@ -1,5 +1,8 @@
 # Concrete Compressive Strength Predictor
 
+<img width="854" height="954" alt="image" src="https://github.com/user-attachments/assets/11d3a1ff-faf6-4752-8be2-82023251cf28" />
+
+
 A web-based application that predicts concrete compressive strength using an XGBoost machine learning model, featuring an integrated AI assistant (powered by Gemini 2.5) for concrete materials and mix-design guidance.
 
 **Live application:** https://derrickmirindi.github.io/compressive_strength/
