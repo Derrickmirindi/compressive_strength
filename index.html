@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concrete Compressive Strength Predictor — XGBoost</title>
+<style>
+* { box-sizing: border-box; font-family: "Times New Roman", Times, serif; }
+body { margin:0; background:#eef3f8; color:#1a1a1a; padding:24px; }
+.card { max-width:920px; margin:0 auto; background:#fff; border-radius:12px; box-shadow:0 6px 24px rgba(31,78,121,.15); padding:28px 32px; }
+h1 { color:#1f4e79; font-size:28px; margin:0 0 4px; }
+p.sub { color:#555; margin:0 0 20px; font-size:16px; }
+.grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px 22px; }
+label { display:block; font-size:15px; color:#1f4e79; margin-bottom:4px; font-weight:bold; }
+input { width:100%; padding:9px 10px; border:1.5px solid #2b7bba; border-radius:7px; font-size:15px; }
+.btn-row { margin-top:22px; display:flex; gap:12px; flex-wrap:wrap; }
+button { background:#1f4e79; color:#fff; border:none; padding:12px 26px; font-size:17px; border-radius:8px; cursor:pointer; }
+button:hover { background:#2b7bba; }
+button.ghost { background:#fff; color:#1f4e79; border:1.5px solid #1f4e79; }
+#result { margin-top:24px; padding:20px; border-radius:10px; text-align:center; background:linear-gradient(135deg,#e8f1fa,#d3e6f7); display:none; }
+#result .val { font-size:42px; font-weight:bold; color:#1f4e79; }
+#result .unit { font-size:20px; color:#555; }
+.note { font-size:13px; color:#777; margin-top:18px; line-height:1.5; }
+select { width:100%; padding:9px; border:1.5px solid #2b7bba; border-radius:7px; font-size:15px; }
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Concrete Compressive Strength Predictor</h1>
+<p class="sub">Gradient-boosted (XGBoost-style) model · enter mix design to predict strength (MPa)</p>
+<div style="margin-bottom:16px;">
+<label>Quick-fill from a sample mix</label>
+<select id="presetSel" onchange="loadPreset()"></select>
+</div>
+<div class="grid" id="inputGrid"></div>
+<div class="btn-row">
+<button onclick="predict()">Predict Strength</button>
+<button class="ghost" onclick="clearForm()">Clear</button>
+</div>
+<div id="result">
+<div class="val" id="predVal">—</div>
+<div class="unit">MPa (predicted compressive strength)</div>
+</div>
+<p class="note">Model trained in-browser on 24 RAC/OAC mixes (Cement, NCA, RCA, SF, GGBFS, LP, NP, Superplasticizer, Slump, Age). Predictions are model estimates for research/education and should be lab-validated before structural use.</p>
+</div>
+<script src="model.js"></script>
+<script>
+const FIELDS = [["cement","Cement (kg/m3)"],["nca","NCA (kg/m3)"],["rca","RCA (kg/m3)"],["sf","Silica Fume SF (kg/m3)"],["ggbfs","Slag GGBFS (kg/m3)"],["lp","Limestone Powder LP (kg/m3)"],["np","Natural Pozzolan NP (kg/m3)"],["sp","Superplasticizer (%)"],["slump","Slump (mm)"],["age","Age (days)"]];
+const grid = document.getElementById("inputGrid");
+FIELDS.forEach(function(f){ grid.insertAdjacentHTML("beforeend", "<div><label>"+f[1]+"</label><input type=number step=any id="+f[0]+"></div>"); });
+const psel = document.getElementById("presetSel");
+psel.insertAdjacentHTML("beforeend", "<option value=-1>— none —</option>");
+DATASET.forEach(function(r,i){ psel.insertAdjacentHTML("beforeend", "<option value="+i+">"+r.name+" · Age "+r.X[9]+"d (actual "+r.y+" MPa)</option>"); });
+function loadPreset(){ var i=+psel.value; if(i<0) return; var x=DATASET[i].X; FIELDS.forEach(function(f,k){ document.getElementById(f[0]).value=x[k]; }); }
+function clearForm(){ FIELDS.forEach(function(f){ document.getElementById(f[0]).value=""; }); document.getElementById("result").style.display="none"; psel.value="-1"; }
+function predict(){ var x=FIELDS.map(function(f){ var v=parseFloat(document.getElementById(f[0]).value); return isNaN(v)?0:v; }); var yhat=MODEL.predict(x); document.getElementById("predVal").textContent=yhat.toFixed(2); document.getElementById("result").style.display="block"; }
+</script>
+</body>
+</html>
