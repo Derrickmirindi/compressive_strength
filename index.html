@@ -13,6 +13,7 @@ p.sub { color:#555; margin:0 0 20px; font-size:16px; }
 .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px 22px; }
 label { display:block; font-size:15px; color:#1f4e79; margin-bottom:4px; font-weight:bold; }
 input { width:100%; padding:9px 10px; border:1.5px solid #2b7bba; border-radius:7px; font-size:15px; }
+.range { font-size:12px; color:#777; margin-top:3px; }
 .btn-row { margin-top:22px; display:flex; gap:12px; flex-wrap:wrap; }
 button { background:#1f4e79; color:#fff; border:none; padding:12px 26px; font-size:17px; border-radius:8px; cursor:pointer; }
 button:hover { background:#2b7bba; }
@@ -21,13 +22,19 @@ button.ghost { background:#fff; color:#1f4e79; border:1.5px solid #1f4e79; }
 #result .val { font-size:42px; font-weight:bold; color:#1f4e79; }
 #result .unit { font-size:20px; color:#555; }
 .note { font-size:13px; color:#777; margin-top:18px; line-height:1.5; }
+.credit { font-size:13px; color:#1f4e79; font-weight:bold; margin-top:10px; line-height:1.5; }
 select { width:100%; padding:9px; border:1.5px solid #2b7bba; border-radius:7px; font-size:15px; }
+.rangebox { margin-top:20px; padding:14px 16px; border:1px solid #cfe0f0; border-radius:9px; background:#f6fafe; }
+.rangebox h3 { color:#1f4e79; font-size:16px; margin:0 0 8px; }
+.rangebox table { width:100%; border-collapse:collapse; font-size:13.5px; }
+.rangebox td, .rangebox th { border-bottom:1px solid #e2ecf6; padding:5px 8px; text-align:left; }
+.rangebox th { color:#1f4e79; }
 </style>
 </head>
 <body>
 <div class="card">
 <h1>Concrete Compressive Strength Predictor</h1>
-<p class="sub">Gradient-boosted (XGBoost-style) model · enter mix design to predict strength (MPa)</p>
+<p class="sub">Extreme Gradient Boosting (XGBoost) model · enter mix design to predict strength (MPa)</p>
 <div style="margin-bottom:16px;">
 <label>Quick-fill from a sample mix</label>
 <select id="presetSel" onchange="loadPreset()"></select>
@@ -41,13 +48,24 @@ select { width:100%; padding:9px; border:1.5px solid #2b7bba; border-radius:7px;
 <div class="val" id="predVal">—</div>
 <div class="unit">MPa (predicted compressive strength)</div>
 </div>
+<div class="rangebox">
+<h3>Interval range of input variables</h3>
+<table><thead><tr><th>Input variable</th><th>Minimum</th><th>Maximum</th></tr></thead><tbody id="rangeBody"></tbody></table>
+</div>
+<p class="note" id="modelNote"></p>
 <p class="note">Model trained in-browser on 24 RAC/OAC mixes (Cement, NCA, RCA, SF, GGBFS, LP, NP, Superplasticizer, Slump, Age). Predictions are model estimates for research/education and should be lab-validated before structural use.</p>
+<p class="note">Predictions are most reliable when inputs stay within the interval ranges of the training variables shown above.</p>
+<p class="credit">Developed by Derrick Mirindi, David Sinkhonde, Frederic Mirindi and Abba Fatiha. Only use for advance education and not for selling.</p>
 </div>
 <script src="model.js"></script>
 <script>
 const FIELDS = [["cement","Cement (kg/m3)"],["nca","NCA (kg/m3)"],["rca","RCA (kg/m3)"],["sf","Silica Fume SF (kg/m3)"],["ggbfs","Slag GGBFS (kg/m3)"],["lp","Limestone Powder LP (kg/m3)"],["np","Natural Pozzolan NP (kg/m3)"],["sp","Superplasticizer (%)"],["slump","Slump (mm)"],["age","Age (days)"]];
 const grid = document.getElementById("inputGrid");
-FIELDS.forEach(function(f){ grid.insertAdjacentHTML("beforeend", "<div><label>"+f[1]+"</label><input type=number step=any id="+f[0]+"></div>"); });
+FIELDS.forEach(function(f,k){ var r=(typeof RANGES!=='undefined')?RANGES[k]:null; var hint=r?("Range: "+r[0]+" – "+r[1]):""; grid.insertAdjacentHTML("beforeend", "<div><label>"+f[1]+"</label><input type=number step=any id="+f[0]+"><div class=range>"+hint+"</div></div>"); });
+var rb=document.getElementById("rangeBody");
+if(typeof RANGES!=='undefined'){ FIELDS.forEach(function(f,k){ rb.insertAdjacentHTML("beforeend", "<tr><td>"+f[1]+"</td><td>"+RANGES[k][0]+"</td><td>"+RANGES[k][1]+"</td></tr>"); }); }
+var note=document.getElementById("modelNote");
+if(MODEL.params){ var p=MODEL.params; note.textContent="XGBoost model settings: objective="+p.objective+", n_estimators="+p.n_estimators+", learning_rate="+p.learning_rate+", max_depth="+p.max_depth+", reg_lambda="+p.reg_lambda+", min_child_weight="+p.min_child_weight+", random_state="+p.random_state+"."; }
 const psel = document.getElementById("presetSel");
 psel.insertAdjacentHTML("beforeend", "<option value=-1>— none —</option>");
 DATASET.forEach(function(r,i){ psel.insertAdjacentHTML("beforeend", "<option value="+i+">"+r.name+" · Age "+r.X[9]+"d (actual "+r.y+" MPa)</option>"); });
